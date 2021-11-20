@@ -1,0 +1,55 @@
+const mongoose = require('mongoose');
+const UserSubSchema = new mongoose.Schema({
+    name: {
+        type: String
+    },
+   image: {
+        type: String
+    },
+    phoneNumber: {
+        type: String
+    },
+   email: {
+        type: String
+    },
+    gender: {
+        type: String
+    },
+    dateOfBirth: {
+        type: String
+    },
+    country: {
+        type: String
+    },
+   homeTown: {
+        type: String
+    },
+   followers: {
+        type: String
+    },
+   following: {
+        type: String
+    },
+  gifts: {
+        type: String
+    }
+    ,
+  diamonds: {
+        type: String
+    }
+     ,
+  stars: {
+        type: String
+    }
+    ,
+  userType: {
+        type: String
+    }
+})
+
+const UserSchema = new mongoose.Schema({
+   data:[UserSubSchema]
+})
+
+let  usermodel  =  mongoose.model("User", UserSchema);
+module.exports  =  usermodel;

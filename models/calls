@@ -1,0 +1,21 @@
+const mongoose = require('mongoose');
+const callSubSchema = new mongoose.Schema({
+    
+    channelName: {
+        type: String
+    },
+    type: {
+        type: String
+    },
+      sdp: {
+        type: String
+    }
+   
+})
+
+const callSchema = new mongoose.Schema({
+   data:[callSubSchema]
+})
+
+let  Call  =  mongoose.model("Calls", callSchema);
+module.exports  =  Call;

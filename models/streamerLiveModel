@@ -1,0 +1,37 @@
+const mongoose = require('mongoose');
+const LiveSubSchema = new mongoose.Schema({
+    name: {
+        type: String
+    },
+   image: {
+        type: String
+    },
+    viewers: {
+        type: String
+    },
+    distance: {
+        type: String
+    },
+    isTrending: {
+        type: String
+    },
+   streamerMail: {
+        type: String
+    },
+   isLive: {
+        type: String
+    },
+   time_GoLive: {
+        type: String
+    },
+     channelName: {
+        type: String
+    }
+})
+
+const LiveSchema = new mongoose.Schema({
+   data:[LiveSubSchema]
+})
+
+let  liveStreammodel  =  mongoose.model("LiveStreamer", LiveSchema);
+module.exports  = liveStreammodel;

@@ -1,0 +1,28 @@
+const mongoose = require('mongoose');
+const cmntSubSchema = new mongoose.Schema({
+    sender: {
+        type: String
+    },
+      senderMail: {
+        type: String
+    },
+    commentContent: {
+        type: String
+    },
+    receiver: {
+        type: String
+    },
+    time: {
+        type: String
+    },
+    image: {
+        type: String
+    }
+})
+
+const cmntSchema = new mongoose.Schema({
+   data:[cmntSubSchema]
+})
+
+let  Cmnt  =  mongoose.model("Comment", cmntSchema);
+module.exports  =  Cmnt;

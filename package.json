@@ -1,0 +1,29 @@
+{
+  "name": "livestreambackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": " node index.js"
+  },
+  "author": "LiveStream",
+  "license": "ISC",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "crypto-browserify": "^3.11.0",
+    "express": "^4.17.1",
+    "firebase-admin": "^10.0.0",
+    "firebase-functions": "^3.16.0",
+    "fs": "0.0.1-security",
+    "fs-extra": "^10.0.0",
+    "mongoose": "^6.0.11",
+    "multer": "^1.4.3",
+    "nodeman": "^1.1.2",
+    "path": "^0.12.7",
+    "socketio": "^1.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
