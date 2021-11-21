@@ -5,9 +5,12 @@ const express = require('express'),
    multer = require("multer"),
    server = http.createServer(app),
    io = require('socket.io').listen(server);
-   const path = require("path");
+const path = require("path");
 
-   const port =process.env.Port || 3000
+var util = require('util');
+var encoder = new util.TextEncoder('utf-8');
+
+const port = process.env.Port || 3000
 app.get('/', (req, res) => {
 
    res.send(' Server is running on port 3000')
@@ -17,7 +20,7 @@ app.get('/', (req, res) => {
 var bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: true }))
 
-// for mangodb database
+// for mongodb database
 var mongoose = require('mongoose');
 const LiveSteamer = require('./models/streamerLiveModel')
 const LiveComments = require('./models/comment');
@@ -129,7 +132,7 @@ io.on('connection', (socket) => {
    })
 
    socket.on('disconnect', function () {
-      socket.broadcast.emit("userdisconnect", ' user has left')
+      socket.broadcast.emit("user disconnect", ' user has left')
 
    })
 
@@ -142,7 +145,7 @@ io.on('connection', (socket) => {
 
       console.log(senderMail + " : SenderMail")
 
-      console.log("Reciever : " + senderImageUrl)
+      console.log("Receiver : " + senderImageUrl)
 
       //create a message object
 
@@ -282,112 +285,112 @@ io.on('connection', (socket) => {
 
    socket.on('onAddCall', function (channelName, type, sdp) {
       console.log("onAddCall called")
-     // console.log("onCall Request  type:" + type)
+      // console.log("onCall Request  type:" + type)
       console.log("ChannelName :" + channelName)
-     // console.log("sdp :" + sdp)
+      // console.log("sdp :" + sdp)
       let onGoingJson = {
          "channelName": channelName,
          "type": type,
          "sdp": sdp
-        }
+      }
 
-        if(type=="OFFER"){
-        socket.broadcast.emit("onOfferRecieved", onGoingJson)
-        console.log("onCall Request  type:" + type)
-        }
-         else if(type=="ANSWER"){
-        socket.broadcast.emit("onAnswerRecieved", onGoingJson)
-        console.log("onCall Request  type:" + type)
-         }
+      if (type == "OFFER") {
+         socket.broadcast.emit("onOfferRecieved", onGoingJson)
+         console.log("onCall Request  type:" + type)
+      }
+      else if (type == "ANSWER") {
+         socket.broadcast.emit("onAnswerRecieved", onGoingJson)
+         console.log("onCall Request  type:" + type)
+      }
 
-// let call = new Calls({
-//    data: [
-//       {
-//          channelName: channelName,
-//          type: type,
-//          sdp: sdp
-//       }
-//    ]
-// })
+      // let call = new Calls({
+      //    data: [
+      //       {
+      //          channelName: channelName,
+      //          type: type,
+      //          sdp: sdp
+      //       }
+      //    ]
+      // })
 
-// console.log("call to be post" + call);
-// call.save().then(() => {
-//    // send the message to all users including the sender  using io.emit
-//    //io.emit('OnNewComment', commentJson)
-// })
+      // console.log("call to be post" + call);
+      // call.save().then(() => {
+      //    // send the message to all users including the sender  using io.emit
+      //    //io.emit('OnNewComment', commentJson)
+      // })
 
-    })
+   })
 
-    socket.on('toGetCalls', function (channelName) {
+   socket.on('toGetCalls', function (channelName) {
       console.log("toGetCalls called")
       console.log(channelName + ":channal")
 
       Calls.find({}, (currentCalls) => {
 
-    })
+      })
 
+   })
+
+
+
+   socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumber, userEmail, userGender, userDob, userCountry, userHomeTown, userFollowers, userFollowing, userGifts, userdiamonds, userStars, userType) {
+
+      console.log(userName + " : is redy for registered now... ");
+
+      let modelJson = {
+         "name": userName,
+         "image": userImage,
+         "phoneNumber": userPhoneNumber,
+         "email": userEmail,
+         "gender": userGender,
+         "dateOfBirth": userDob,
+         "country": userCountry,
+         "homeTown": userHomeTown,
+         "followers": userFollowers,
+         "following": userFollowing,
+         "gifts": userGifts,
+         "diamonds": userdiamonds,
+         "stars": userStars,
+         "userType": userType
+      }
+
+
+      let userModel = new Users({
+         data: [
+            {
+               name: userName,
+               image: userImage,
+               phoneNumber: userPhoneNumber,
+               email: userEmail,
+               gender: userGender,
+               dateOfBirth: userDob,
+               country: userCountry,
+               homeTown: userHomeTown,
+               followers: userFollowers,
+               following: userFollowing,
+               gifts: userGifts,
+               diamonds: userdiamonds,
+               stars: userStars,
+               userType: userType
+            }
+         ]
+      })
+
+
+      console.log("this is user  to post" + userModel);
+
+
+
+      userModel.save().then(() => {
+         // send the message to all users including the sender  using io.emit
+         // io.emit('OnNewComment', modelJson)
       })
 
 
 
-socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumber, userEmail, userGender, userDob, userCountry, userHomeTown, userFollowers, userFollowing, userGifts, userdiamonds, userStars, userType) {
-
-	console.log(userName + " : is redy for registered now... ");
-
-	let modelJson = {
-		"name": userName,
-		"image": userImage,
-		"phoneNumber": userPhoneNumber,
-		"email": userEmail,
-		"gender": userGender,
-		"dateOfBirth": userDob,
-		"country": userCountry,
-		"homeTown": userHomeTown,
-		"followers": userFollowers,
-		"following": userFollowing,
-		"gifts": userGifts,
-		"diamonds": userdiamonds,
-		"stars": userStars,
-		"userType": userType
-	}
 
 
-	let userModel = new Users({
-		data: [
-			{
-				name: userName,
-				image: userImage,
-				phoneNumber: userPhoneNumber,
-				email: userEmail,
-				gender: userGender,
-				dateOfBirth: userDob,
-				country: userCountry,
-				homeTown: userHomeTown,
-				followers: userFollowers,
-				following: userFollowing,
-				gifts: userGifts,
-				diamonds: userdiamonds,
-				stars: userStars,
-				userType: userType
-			}
-		]
-	})
-
-
-	console.log("this is user  to post" + userModel);
-
-
-
-	userModel.save().then(() => {
-		// send the message to all users including the sender  using io.emit
-		// io.emit('OnNewComment', modelJson)
-	 })
-
-
-
-
-
-})
+   })
 
 
 
@@ -399,14 +402,14 @@ socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumb
 const storage = multer.diskStorage({
    destination: './upload/images',
    filename: (req, file, cb) => {
-       return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+      return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
    }
 })
 
 const upload = multer({
    storage: storage,
    limits: {
-       fileSize: 10000000000000000
+      fileSize: 10000000000000000
    }
 })
 app.use('/image', express.static('upload/images'));
@@ -414,14 +417,14 @@ app.use('/image', express.static('upload/images'));
 app.post("/upload", upload.single('image'), (req, res) => {
 
    res.json({
-       success: 1,
-       profile_url: `http://192.168.10.4:3000/image/${req.file.filename}`
+      success: 1,
+      profile_url: `http://192.168.10.4:3000/image/${req.file.filename}`
    })
 })
 
 // endpoint to get all calls by channelName
 app.get('/calls/channelName/:channelName', (req, res) => {
-  Calls.find({  data: { $elemMatch : {channelName: { $in: req.params.channelName }} }}, (err, currentCalls) => {
+   Calls.find({ data: { $elemMatch: { channelName: { $in: req.params.channelName } } } }, (err, currentCalls) => {
 
       res.send(currentCalls);
    })
@@ -434,7 +437,7 @@ app.get('/calls/channelName/:channelName', (req, res) => {
 
 // endpoint to get all comments by id
 app.get('/calls/:id', (req, res) => {
-   Calls.find({ "_id": req.params.id  }, (err, currentCalls) => {
+   Calls.find({ "_id": req.params.id }, (err, currentCalls) => {
       res.send(currentCalls);
    })
 })
@@ -446,7 +449,7 @@ app.get('/livestreamers', (req, res) => {
          return res.send(err);
       }
       res.send(streamers);
-  })
+   })
 
 
 })
@@ -455,22 +458,22 @@ app.get('/livestreamers', (req, res) => {
 // endpoint to search live streamers  by name
 app.get('/livestreamers/search/:name', (req, res) => {
 
-	LiveSteamer.find({  data: { $elemMatch : {name: { $regex:'.*' + req.params.name+ '.*'}} }}, (err, streamers) => {
+   LiveSteamer.find({ data: { $elemMatch: { name: { $regex: '.*' + req.params.name + '.*' } } } }, (err, streamers) => {
 
-	 res.send(streamers);
-  })
+      res.send(streamers);
+   })
 
 
- })
+})
 
 
 // endpoint to get all comments by receiver
 app.get('/comments/receiver/:receiver', (req, res) => {
 
-   LiveComments.find({  data: { $elemMatch : {receiver: { $in: req.params.receiver}} }}, (err, comments) => {
+   LiveComments.find({ data: { $elemMatch: { receiver: { $in: req.params.receiver } } } }, (err, comments) => {
 
-	res.send(comments);
- })
+      res.send(comments);
+   })
 
 
 })
@@ -492,31 +495,31 @@ app.delete('/comments/deleteMany/:receiver', (req, res) => {
 // endpoint to delete comment by sender
 app.delete('/comments/delete/:sender', (req, res) => {
    Comment.findOne({
-          sender: req.params.sender
+      sender: req.params.sender
    }, (err, comment) => {
 
-          if (err) {
-                 return res.send(err);
-          }
+      if (err) {
+         return res.send(err);
+      }
 
-          if (comment === null) {
-                 return res.send({
-                        msg: 'No matching user with name sam'
-                 });
-          }
+      if (comment === null) {
+         return res.send({
+            msg: 'No matching user with name sam'
+         });
+      }
 
-          console.log(req.body);
+      console.log(req.body);
 
-          console.log("To be Deleted:" + comment);
+      console.log("To be Deleted:" + comment);
 
 
-          comment.delete(err => {
-                 if (err) {
+      comment.delete(err => {
+         if (err) {
 
-                        res.send(err);
-                 }
-                 res.json({ message: 'Deleted! ' });
-          });
+            res.send(err);
+         }
+         res.json({ message: 'Deleted! ' });
+      });
 
    });
 });
@@ -527,15 +530,15 @@ app.get('/users/username/:name', (req, res) => {
 
 
 
-	Users.find({  data: { $elemMatch : {name: { $in: req.params.name }} }}, (err, users) => {
+   Users.find({ data: { $elemMatch: { name: { $in: req.params.name } } } }, (err, users) => {
 
-		res.send(users);
-	 })
-
-
+      res.send(users);
+   })
 
 
- })
+
+
+})
 
 
 server.listen(port, () => {
