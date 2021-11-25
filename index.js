@@ -418,7 +418,7 @@ app.post("/upload", upload.single('image'), (req, res) => {
 
    res.json({
       success: 1,
-      profile_url: `http://192.168.10.4:3000/image/${req.file.filename}`
+      profile_url: `http://vicestreams.com/image/${req.file.filename}`
    })
 })
 
