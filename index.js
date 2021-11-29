@@ -4,26 +4,24 @@ const express = require('express'),
    fs = require("fs"),
    multer = require("multer"),
    server = http.createServer(app),
-   io = require('socket.io').listen(server);
+   io = require('socket.io')();
 const path = require("path");
 
-var util = require('util');
-var encoder = new util.TextEncoder('utf-8');
-
-const port = process.env.Port || 80
+   const port =process.env.Port || 3000
 app.get('/', (req, res) => {
 
-   res.send(' Server is running on port 80')
+   res.send(' Server is running on port 3000')
 });
 
 //post url request
 var bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: true }))
 
-// for mongodb database
+// for mangodb database
 var mongoose = require('mongoose');
 const LiveSteamer = require('./models/streamerLiveModel')
 const LiveComments = require('./models/comment');
+const LiveMessages = require('./models/message');
 const Calls = require('./models/calls');
 const Users = require('./models/user');
 const { send } = require('process');
@@ -95,44 +93,59 @@ io.on('connection', (socket) => {
       console.log(streamerMail + ':ended  live.')
 
 
-      LiveSteamer.findOne({
-         streamerMail: streamerMail
-      }, (err, stream) => {
+    //   LiveSteamer.findOne({
+    //      streamerMail: streamerMail
+    //   }, (err, stream) => {
 
-         if (err) {
+    //      if (err) {
 
-            console.log(err);
-         }
+    //         console.log(err);
+    //      }
 
-         console.log("To be Deleted:" + stream);
+    //      console.log("To be Deleted:" + stream);
 
-         stream.delete(err => {
-            if (err) {
+    //      stream.delete(err => {
+    //         if (err) {
 
-               console.log(err);
-            }
+    //            console.log(err);
+    //         }
 
-            console.log(stream + ':Deleted! ');
-            socket.broadcast.emit("endLiveStreamer", "refreshing")
-            socket.broadcast.emit("refreshStreamers", "refreshing")
+    //         console.log(stream + ':Deleted! ');
+    //         socket.broadcast.emit("endLiveStreamer", "refreshing")
+    //         socket.broadcast.emit("refreshStreamers", "refreshing")
 
-         });
+    //      });
 
+    //   });
+
+
+
+
+	  var myquery = { streamerMail: streamerMail };
+	  LiveSteamer.deleteMany(myquery, function (err, obj) {
+         if (err) throw err;
+         console.log(streamerMail + " deleted");
+
+		       socket.broadcast.emit("endLiveStreamer", "refreshing")
+		    socket.broadcast.emit("refreshStreamers", "refreshing")
       });
+
+
+
 
    })
 
 
-   socket.on('NewViewerJoined', function (viewerId) {
+   socket.on('NewViewerJoined', function (streamerId) {
 
-      console.log(viewerId + ':joined the live.')
+      console.log(streamerId + ':joined the live.')
 
-      socket.broadcast.emit("newViewersToStream", "User@gmail.com")
+      socket.broadcast.emit("newViewersToStream", streamerId)
 
    })
 
    socket.on('disconnect', function () {
-      socket.broadcast.emit("user disconnect", ' user has left')
+      socket.broadcast.emit("userdisconnect", ' user has left')
 
    })
 
@@ -145,7 +158,7 @@ io.on('connection', (socket) => {
 
       console.log(senderMail + " : SenderMail")
 
-      console.log("Receiver : " + senderImageUrl)
+      console.log("Reciever : " + senderImageUrl)
 
       //create a message object
 
@@ -180,11 +193,62 @@ io.on('connection', (socket) => {
       comment.save().then(() => {
          // send the message to all users including the sender  using io.emit
          io.emit('OnNewComment', commentJson)
+
       })
 
 
 
    })
+
+   socket.on('messagedetection', (senderId, messageContent, receivermail, senderName, senderMail, sendingTime, senderImageUrl) => {
+
+	//log the message in console
+
+	console.log(senderName + " : " + messageContent)
+
+	console.log(senderMail + " : SenderMail")
+
+	console.log("Reciever : " + senderImageUrl)
+
+	//create a message object
+
+
+	let messageJson = {
+	   "_id": senderId,
+	   "sender": senderName,
+	   "senderMail": senderMail,
+	   "messageContent": messageContent,
+	   "receiver": receivermail,
+	   "time": sendingTime,
+	   "image": senderImageUrl
+	}
+
+
+	let message = new LiveMessages({
+	   data: [
+		  {
+			 sender: senderName,
+			 senderMail: senderMail,
+			 messageContent: messageContent,
+			 receiver: receivermail,
+			 time: sendingTime,
+			 image: senderImageUrl
+		  }
+	   ]
+	})
+
+
+	console.log("this is message to post" + message);
+
+	message.save().then(() => {
+	   // send the message to all users including the sender  using io.emit
+	   io.emit('OnNewMessage', messageJson)
+	   io.emit('incomingMessage', messageJson)
+	})
+
+
+
+ })
 
    socket.on('commentsTodelete', (receivermail) => {
 
@@ -216,9 +280,16 @@ io.on('connection', (socket) => {
 
    })
 
-   socket.on('toSendViewersCount', function (countViewers) {
+   socket.on('toSendViewersCount', function (countViewers,streamerMail) {
       console.log(countViewers + ":number of viewers")
-      socket.broadcast.emit("toSendViewersCountToViewer", countViewers)
+	  console.log(streamerMail + ":streamer")
+
+	  let viewerJson = {
+		"countViewers": countViewers,
+		"streamerMail": streamerMail
+	 }
+
+      socket.broadcast.emit("toSendViewersCountToViewer", viewerJson)
 
    })
 
@@ -253,8 +324,8 @@ io.on('connection', (socket) => {
 
    socket.on('onRejectCall', function (callerIdMail) {
       console.log(callerIdMail + ":call is rejected")
-      socket.broadcast.emit("onCallIsRejected", callerIdMail)
-
+	 io.emit("onCallIsRejected", callerIdMail) // for all
+	  socket.emit("onCallIsRejected", callerIdMail)  // caller
    })
 
    socket.on('Hi', function (callerIdMail) {
@@ -285,112 +356,112 @@ io.on('connection', (socket) => {
 
    socket.on('onAddCall', function (channelName, type, sdp) {
       console.log("onAddCall called")
-      // console.log("onCall Request  type:" + type)
+     // console.log("onCall Request  type:" + type)
       console.log("ChannelName :" + channelName)
-      // console.log("sdp :" + sdp)
+     // console.log("sdp :" + sdp)
       let onGoingJson = {
          "channelName": channelName,
          "type": type,
          "sdp": sdp
-      }
+        }
 
-      if (type == "OFFER") {
-         socket.broadcast.emit("onOfferRecieved", onGoingJson)
-         console.log("onCall Request  type:" + type)
-      }
-      else if (type == "ANSWER") {
-         socket.broadcast.emit("onAnswerRecieved", onGoingJson)
-         console.log("onCall Request  type:" + type)
-      }
+        if(type=="OFFER"){
+        socket.broadcast.emit("onOfferRecieved", onGoingJson)
+        console.log("onCall Request  type:" + type)
+        }
+         else if(type=="ANSWER"){
+        socket.broadcast.emit("onAnswerRecieved", onGoingJson)
+        console.log("onCall Request  type:" + type)
+         }
 
-      // let call = new Calls({
-      //    data: [
-      //       {
-      //          channelName: channelName,
-      //          type: type,
-      //          sdp: sdp
-      //       }
-      //    ]
-      // })
+// let call = new Calls({
+//    data: [
+//       {
+//          channelName: channelName,
+//          type: type,
+//          sdp: sdp
+//       }
+//    ]
+// })
 
-      // console.log("call to be post" + call);
-      // call.save().then(() => {
-      //    // send the message to all users including the sender  using io.emit
-      //    //io.emit('OnNewComment', commentJson)
-      // })
+// console.log("call to be post" + call);
+// call.save().then(() => {
+//    // send the message to all users including the sender  using io.emit
+//    //io.emit('OnNewComment', commentJson)
+// })
 
-   })
+    })
 
-   socket.on('toGetCalls', function (channelName) {
+    socket.on('toGetCalls', function (channelName) {
       console.log("toGetCalls called")
       console.log(channelName + ":channal")
 
       Calls.find({}, (currentCalls) => {
 
-      })
+    })
 
-   })
-
-
-
-   socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumber, userEmail, userGender, userDob, userCountry, userHomeTown, userFollowers, userFollowing, userGifts, userdiamonds, userStars, userType) {
-
-      console.log(userName + " : is redy for registered now... ");
-
-      let modelJson = {
-         "name": userName,
-         "image": userImage,
-         "phoneNumber": userPhoneNumber,
-         "email": userEmail,
-         "gender": userGender,
-         "dateOfBirth": userDob,
-         "country": userCountry,
-         "homeTown": userHomeTown,
-         "followers": userFollowers,
-         "following": userFollowing,
-         "gifts": userGifts,
-         "diamonds": userdiamonds,
-         "stars": userStars,
-         "userType": userType
-      }
-
-
-      let userModel = new Users({
-         data: [
-            {
-               name: userName,
-               image: userImage,
-               phoneNumber: userPhoneNumber,
-               email: userEmail,
-               gender: userGender,
-               dateOfBirth: userDob,
-               country: userCountry,
-               homeTown: userHomeTown,
-               followers: userFollowers,
-               following: userFollowing,
-               gifts: userGifts,
-               diamonds: userdiamonds,
-               stars: userStars,
-               userType: userType
-            }
-         ]
-      })
-
-
-      console.log("this is user  to post" + userModel);
-
-
-
-      userModel.save().then(() => {
-         // send the message to all users including the sender  using io.emit
-         // io.emit('OnNewComment', modelJson)
       })
 
 
 
+socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumber, userEmail, userGender, userDob, userCountry, userHomeTown, userFollowers, userFollowing, userGifts, userdiamonds, userStars, userType) {
+
+	console.log(userName + " : is redy for registered now... ");
+
+	let modelJson = {
+		"name": userName,
+		"image": userImage,
+		"phoneNumber": userPhoneNumber,
+		"email": userEmail,
+		"gender": userGender,
+		"dateOfBirth": userDob,
+		"country": userCountry,
+		"homeTown": userHomeTown,
+		"followers": userFollowers,
+		"following": userFollowing,
+		"gifts": userGifts,
+		"diamonds": userdiamonds,
+		"stars": userStars,
+		"userType": userType
+	}
 
 
-   })
+	let userModel = new Users({
+		data: [
+			{
+				name: userName,
+				image: userImage,
+				phoneNumber: userPhoneNumber,
+				email: userEmail,
+				gender: userGender,
+				dateOfBirth: userDob,
+				country: userCountry,
+				homeTown: userHomeTown,
+				followers: userFollowers,
+				following: userFollowing,
+				gifts: userGifts,
+				diamonds: userdiamonds,
+				stars: userStars,
+				userType: userType
+			}
+		]
+	})
+
+
+	console.log("this is user  to post" + userModel);
+
+
+
+	userModel.save().then(() => {
+		// send the message to all users including the sender  using io.emit
+		// io.emit('OnNewComment', modelJson)
+	 })
+
+
+
+
+
+})
 
 
 
@@ -402,14 +473,14 @@ io.on('connection', (socket) => {
 const storage = multer.diskStorage({
    destination: './upload/images',
    filename: (req, file, cb) => {
-      return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+       return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
    }
 })
 
 const upload = multer({
    storage: storage,
    limits: {
-      fileSize: 10000000000000000
+       fileSize: 10000000000000000
    }
 })
 app.use('/image', express.static('upload/images'));
@@ -417,14 +488,14 @@ app.use('/image', express.static('upload/images'));
 app.post("/upload", upload.single('image'), (req, res) => {
 
    res.json({
-      success: 1,
-      profile_url: `http://192.168.10.4:3000/image/${req.file.filename}`
+       success: 1,
+       profile_url: `http://vicestreams.com/image/${req.file.filename}`
    })
 })
 
 // endpoint to get all calls by channelName
 app.get('/calls/channelName/:channelName', (req, res) => {
-   Calls.find({ data: { $elemMatch: { channelName: { $in: req.params.channelName } } } }, (err, currentCalls) => {
+  Calls.find({  data: { $elemMatch : {channelName: { $in: req.params.channelName }} }}, (err, currentCalls) => {
 
       res.send(currentCalls);
    })
@@ -437,7 +508,7 @@ app.get('/calls/channelName/:channelName', (req, res) => {
 
 // endpoint to get all comments by id
 app.get('/calls/:id', (req, res) => {
-   Calls.find({ "_id": req.params.id }, (err, currentCalls) => {
+   Calls.find({ "_id": req.params.id  }, (err, currentCalls) => {
       res.send(currentCalls);
    })
 })
@@ -449,7 +520,7 @@ app.get('/livestreamers', (req, res) => {
          return res.send(err);
       }
       res.send(streamers);
-   })
+  })
 
 
 })
@@ -458,22 +529,22 @@ app.get('/livestreamers', (req, res) => {
 // endpoint to search live streamers  by name
 app.get('/livestreamers/search/:name', (req, res) => {
 
-   LiveSteamer.find({ data: { $elemMatch: { name: { $regex: '.*' + req.params.name + '.*' } } } }, (err, streamers) => {
+	LiveSteamer.find({  data: { $elemMatch : {name: { $regex:'.*' + req.params.name+ '.*'}} }}, (err, streamers) => {
 
-      res.send(streamers);
-   })
+	 res.send(streamers);
+  })
 
 
-})
+ })
 
 
 // endpoint to get all comments by receiver
 app.get('/comments/receiver/:receiver', (req, res) => {
 
-   LiveComments.find({ data: { $elemMatch: { receiver: { $in: req.params.receiver } } } }, (err, comments) => {
+   LiveComments.find({  data: { $elemMatch : {receiver: { $in: req.params.receiver}} }}, (err, comments) => {
 
-      res.send(comments);
-   })
+	res.send(comments);
+ })
 
 
 })
@@ -495,31 +566,31 @@ app.delete('/comments/deleteMany/:receiver', (req, res) => {
 // endpoint to delete comment by sender
 app.delete('/comments/delete/:sender', (req, res) => {
    Comment.findOne({
-      sender: req.params.sender
+          sender: req.params.sender
    }, (err, comment) => {
 
-      if (err) {
-         return res.send(err);
-      }
+          if (err) {
+                 return res.send(err);
+          }
 
-      if (comment === null) {
-         return res.send({
-            msg: 'No matching user with name sam'
-         });
-      }
+          if (comment === null) {
+                 return res.send({
+                        msg: 'No matching user with name sam'
+                 });
+          }
 
-      console.log(req.body);
+          console.log(req.body);
 
-      console.log("To be Deleted:" + comment);
+          console.log("To be Deleted:" + comment);
 
 
-      comment.delete(err => {
-         if (err) {
+          comment.delete(err => {
+                 if (err) {
 
-            res.send(err);
-         }
-         res.json({ message: 'Deleted! ' });
-      });
+                        res.send(err);
+                 }
+                 res.json({ message: 'Deleted! ' });
+          });
 
    });
 });
@@ -530,15 +601,15 @@ app.get('/users/username/:name', (req, res) => {
 
 
 
-   Users.find({ data: { $elemMatch: { name: { $in: req.params.name } } } }, (err, users) => {
+	Users.find({  data: { $elemMatch : {name: { $in: req.params.name }} }}, (err, users) => {
 
-      res.send(users);
-   })
-
-
+		res.send(users);
+	 })
 
 
-})
+
+
+ })
 
 
 server.listen(port, () => {
