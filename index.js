@@ -7,10 +7,10 @@ const express = require('express'),
    io = require('socket.io').listen(server);
    const path = require("path");
 
-   const port =process.env.Port || 3000
+   const port =process.env.Port || 80
 app.get('/', (req, res) => {
 
-   res.send(' Server is running on port 3000')
+   res.send(' Server is running on port 80')
 });
 
 //post url request
