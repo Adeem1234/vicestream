@@ -4,8 +4,8 @@ const express = require('express'),
    fs = require("fs"),
    multer = require("multer"),
    server = http.createServer(app),
-   io = require('socket.io')();
-const path = require("path");
+   io = require('socket.io').listen(server);
+   const path = require("path");
 
    const port =process.env.Port || 3000
 app.get('/', (req, res) => {
@@ -110,7 +110,7 @@ io.on('connection', (socket) => {
     //            console.log(err);
     //         }
 
-    //         console.log(stream + ':Deleted! ');
+
     //         socket.broadcast.emit("endLiveStreamer", "refreshing")
     //         socket.broadcast.emit("refreshStreamers", "refreshing")
 
@@ -120,15 +120,15 @@ io.on('connection', (socket) => {
 
 
 
-
-	  var myquery = { streamerMail: streamerMail };
+	  var myquery = { data: { $elemMatch : {streamerMail: { $in: streamerMail}} }};
 	  LiveSteamer.deleteMany(myquery, function (err, obj) {
-         if (err) throw err;
-         console.log(streamerMail + " deleted");
+		 if (err) throw err;
+		 console.log(streamerMail+ ':Deleted! ');
+		socket.broadcast.emit("endLiveStreamer", streamerMail)
+		socket.broadcast.emit("refreshStreamers", "refreshing")
 
-		       socket.broadcast.emit("endLiveStreamer", "refreshing")
-		    socket.broadcast.emit("refreshStreamers", "refreshing")
-      });
+	  });
+
 
 
 
@@ -256,11 +256,24 @@ io.on('connection', (socket) => {
 
       console.log(receivermail + "'s comments are ready to be deleted")
 
-      var myquery = { receiver: receivermail };
-      LiveComments.deleteMany(myquery, function (err, obj) {
-         if (err) throw err;
-         console.log(receivermail + "'s comment(s) deleted");
-      });
+    //   var myquery = { receiver: receivermail };
+    //   LiveComments.deleteMany(myquery, function (err, obj) {
+    //      if (err) throw err;
+    //      console.log(receivermail + "'s comment(s) deleted");
+    //   });
+
+
+
+	  var myquery = { data: { $elemMatch : {receiver: { $in: receivermail}} }};
+	  LiveComments.deleteMany(myquery, function (err, obj) {
+		 if (err) throw err;
+		 console.log(receivermail + "'s comment(s) deleted");
+
+	  });
+
+
+
+
 
 
 
@@ -293,7 +306,6 @@ io.on('connection', (socket) => {
 
    })
 
-
    socket.on('onGoingCall', function (callerIdMail, callerName, callerImage, receiverIdMail, receiverName, receiverImage, channelName) {
       console.log("OnGoing call to :" + receiverIdMail)
       console.log("ChannelName :" + channelName)
@@ -315,14 +327,13 @@ io.on('connection', (socket) => {
 
    })
 
-   socket.on('onAcceptCall', function (callerIdMail) {
+  socket.on('onAcceptCall', function (callerIdMail) {
       console.log(callerIdMail + ":call is accepted")
       socket.broadcast.emit("onCallIsAccepted", callerIdMail)
 
    })
 
-
-   socket.on('onRejectCall', function (callerIdMail) {
+socket.on('onRejectCall', function (callerIdMail) {
       console.log(callerIdMail + ":call is rejected")
 	 io.emit("onCallIsRejected", callerIdMail) // for all
 	  socket.emit("onCallIsRejected", callerIdMail)  // caller
@@ -463,6 +474,53 @@ socket.on("onNewUserAdded", function (userId, userName, userImage, userPhoneNumb
 
 })
 
+socket.on("onUserUpdate", function (userId, userName, userImage, userPhoneNumber, userEmail, userGender, userDob, userCountry, userHomeTown, userFollowers, userFollowing, userGifts, userdiamonds, userStars, userType) {
+
+	console.log(userName + " : is redy for update now... ");
+
+	let modelJson = {
+		"name": userName,
+		"image": userImage,
+		"phoneNumber": userPhoneNumber,
+		"email": userEmail,
+		"gender": userGender,
+		"dateOfBirth": userDob,
+		"country": userCountry,
+		"homeTown": userHomeTown,
+		"followers": userFollowers,
+		"following": userFollowing,
+		"gifts": userGifts,
+		"diamonds": userdiamonds,
+		"stars": userStars,
+		"userType": userType
+	}
+
+console.log("this is user  to update" + modelJson);
+
+
+	var myquery = { data: { $elemMatch : {name: { $in: userName}} }};
+	Users.updateOne( myquery, modelJson, function(
+		err,
+		result
+	  ) {
+		if (err) {
+
+		  console.log(err);
+
+		} else {
+
+		  console.log(result);
+
+		}
+	  });
+
+
+
+
+
+
+
+})
 
 
 })
@@ -549,15 +607,33 @@ app.get('/comments/receiver/:receiver', (req, res) => {
 
 })
 
+
+// endpoint to get all messages by receiver
+app.get('/messages/receiver/:receiver', (req, res) => {
+
+	LiveMessages.find({  data: { $elemMatch : {receiver: { $in: req.params.receiver}} }}, (err, comments) => {
+
+	 res.send(comments);
+  })
+
+
+ })
+
 // endpoint to delete comment by receiver
 app.delete('/comments/deleteMany/:receiver', (req, res) => {
 
 
-   var myquery = { receiver: req.params.receiver };
-   Comment.deleteMany(myquery, function (err, obj) {
+  var myquery = { data: { $elemMatch : {streamerMail: { $in: req.params.receiver}} }};
+   LiveSteamer.deleteMany(myquery, function (err, obj) {
       if (err) throw err;
-      console.log(receiver + "'s comment(s) deleted");
-      res.json({ message: 'comment(s) deleted ' });
+
+
+	 if(obj)
+	 {
+		console.log("'s comment(s) deleted");
+
+	 }
+      res.json(obj);
    });
 
 
@@ -565,7 +641,7 @@ app.delete('/comments/deleteMany/:receiver', (req, res) => {
 
 // endpoint to delete comment by sender
 app.delete('/comments/delete/:sender', (req, res) => {
-   Comment.findOne({
+	LiveComments.findOne({
           sender: req.params.sender
    }, (err, comment) => {
 
